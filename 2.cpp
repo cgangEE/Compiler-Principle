@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <vector>
 #include <queue>
+#include <stack>
 
 #include <cstdio>
 #include <cstdlib>
@@ -307,10 +308,73 @@ void readGra(){
 
 	rep(i, idx)										//消去左因子 
 		if (sz(gra[i]))
-		rmLefFac(gra[i]);
+			rmLefFac(gra[i]);
+}
+
+void error(){
+	puts("sooooorry! error occur!");
+}
+
+void process(char *lang){
+	
+	stack<Alpha> stk;
+	int n = strlen(lang), i = 0;
+	stk.push(Alpha(1, '#'));
+	stk.push(Alpha(0, E));
+
+	while (sz(stk)){
+		Alpha x = stk.top();
+		if (x.t==1){
+			if (x.e==lang[i])
+				stk.pop(), ++i;
+			else if (x==KS)
+				stk.pop();
+			else{
+				error();
+				return;
+			}
+		}
+		else if (m[x.e][lang[i]]!=-1){
+			int to = m[x.e][lang[i]];
+			stk.pop();
+			repd(j, sz(gra[x.e][to])-1, 0)
+				stk.push(gra[x.e][to][j]);
+		}
+		else{
+			error();
+			return;
+		}
+	}
+
+	if (i!=n) error();
+	else
+		puts("No problem!");
 }
 
 void process(){
+#ifdef __linux
+	freopen("/dev/tty", "r", stdin);
+#endif 
+
+#ifdef __WINDOWS_
+	freopen("CON", "r", stdin);
+#endif
+
+#ifdef _WIN32
+	freopen("CON", "r", stdin);
+#endif
+	
+	/*
+	out();
+	cout<<"---------------------------------------\n";
+	outM();
+	*/
+	char lang[S+10];
+	while (gets(lang)){
+		int n = strlen(lang);
+		lang[n] = '#', lang[n+1] = '\0';
+	   	process(lang);
+	}
 }
 
 int main(){
