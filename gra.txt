@@ -1,5 +1,5 @@
-E->T|E+T|E-T
-T->F|T*F|T/F
-F->(E)|N
-N->D|DN
-D->0|1|2|3|4|5|6|7|8|9
+S->#E#
+E->E+T|T
+T->T*F|F
+F->P^F|P
+P->(E)|i
