@@ -1,5 +1,6 @@
 S->#E#
-E->E+T|T
-T->T*F|F
-F->P^F|P
-P->(E)|i
+E->T|E+T|E-T
+T->F|T*F|T/F
+F->(E)|N
+N->D|0N|1N|2N|3N|4N|5N|6N|7N|8N|9N
+D->0|1|2|3|4|5|6|7|8|9

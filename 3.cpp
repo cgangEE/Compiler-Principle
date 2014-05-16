@@ -3,6 +3,7 @@
 #include <vector>
 #include <queue>
 #include <stack>
+#include <map>
 
 #include <cstdio>
 #include <cstdlib>
@@ -23,10 +24,21 @@ using namespace std;
 #define S 200
 #define M 26	//number of non-terminal symbol
 #define N 128	//number of terminal symbol
+#define DEBUG 1
+
+#ifdef __linux
+	char origin[] = "/dev/tty";
+#endif
+#ifdef __WINDOWS_
+	char origin[] = "CON";
+#endif
+#ifdef _WIN32
+	char origin[] = "CON";
+#endif
 
 struct Alpha{
 	int t, e;		//t:type 0:non-terminal 1:terminal e:element
-	Alpha(){}
+	Alpha(){t=e=0;}
 	Alpha(int t, int e):t(t),e(e){}
 	Alpha(char x){
 		if (isupper(x)) t=0, e=x-'A';
@@ -55,14 +67,74 @@ struct Formula{
 		cout<<endl;
 	}
 };
-
 bool first[M+10][N+10], last[M+10][N+10];
 int table[N+10][N+10];	//-1:empty  0:less than 1:equal 2:greater than
 vector<Formula> gra[M+10];
+map<string, Alpha> mp;
 int E = -1;
 
-void outVT();
-void outTable();
+void outVT(){
+	cout<<"----------FirstVT---------------"<<endl;
+	rep(i, M){
+		bool flag=0;
+		vector<int> v;
+		rep(j, N) if (first[i][j])
+			v.pb(j);
+		if (sz(v)){
+			printf("%c-> ", i+'A');
+			rep(j, sz(v)) putchar(v[j]);
+			puts("");
+		}
+	}
+
+	cout<<endl;
+	cout<<"-----------LastVT--------------"<<endl;
+	rep(i, M){
+		bool flag=0;
+		vector<int> v;
+		rep(j, N) if (last[i][j])
+			v.pb(j);
+		if (sz(v)){
+			printf("%c-> ", i+'A');
+			rep(j, sz(v)) putchar(v[j]);
+			puts("");
+		}
+	}
+}
+
+void outTable(){
+	vector<char> s;
+	/*
+	char c[]="+*^i()#";
+	rep(i, strlen(c)) s.pb(c[i]);
+	*/
+
+	bool x[N+10];
+	clr(x, 0);
+	rep(i, N) rep(j, N) if (table[i][j]!=-1) x[i]=x[j]=1;
+	rep(i, N) if (x[i]) s.pb(i);
+
+	printf("  ");
+	rep(i, sz(s)) printf("%c ", s[i]);
+	puts("");
+
+	rep(i, sz(s)){
+		printf("%c ", s[i]);
+		rep(j, sz(s)){
+			int g=table[s[i]][s[j]];
+			printf("%c ", g==-1?' ':g==0?'<':g==1?'=':'>');
+		}
+		puts("");
+	}
+
+}
+
+void addMp(Formula &f, Alpha a){
+	string s;
+	rep(i, sz(f)) if (f[i].t==1) s+=f[i].e;
+	else s+='$';
+	mp[s] = a;
+}
 
 void readGra(){
 	freopen("gra.txt", "r", stdin);
@@ -75,7 +147,7 @@ void readGra(){
 		Formula formula;
 		repf(k, 3, n)
 			if (s[k]=='|')
-				gra[i].pb(formula), formula.clear();
+				gra[i].pb(formula), addMp(formula, Alpha(s[0])), formula.clear();
 			else
 				formula.pb(s[k]);
 	}
@@ -143,77 +215,85 @@ void getTable(){
 	}
 }
 
+bool err = 0;
+
+void error(){
+	puts("Sorry, error occur!");
+}
+
+void success(){
+	puts("right...");
+}
+
+Alpha reduction(Alpha *a, int x, int y){
+	string s;
+	repf(i, x, y) if (a[i].t==1) s+=a[i].e;
+	else s+='$';
+	return mp[s];
+}
+
+void process(){
+	freopen(origin, "r", stdin);
+	char s[S+10];
+
+	while (gets(s)){
+		err = 0;
+
+		Alpha stk[S+10];
+		int k = 0;
+		stk[k] = Alpha('#');
+
+		int n = strlen(s);
+		s[n] = '#';
+		s[++n] = '\0';
+
+		rep(i, n){
+			char a = s[i];
+			int j = k;
+			if (stk[j].t==0) --j;
+			char q;
+			while (table[stk[j].e][a]==2){
+				do{
+					q = stk[j--].e;
+					if (stk[j].t==0) --j;
+				}
+				while(table[stk[j].e][q]==1);
+				Alpha nt = reduction(stk, j+1, k);
+
+				if (nt==Alpha()){
+					err=1; break;
+				}
+
+				k = j+1;
+				stk[k] = nt;
+			}
+			if (err) break;
+
+			if (table[stk[j].e][a]<=1)
+				stk[++k] = Alpha(a);
+			else{
+				err=1; break;
+			}
+			if (DEBUG){
+				rep(x, k+1) stk[x].out();
+				puts("");
+			}
+		}
+
+
+		if (!err && k==2 && stk[0]==Alpha('#') && stk[1].t==0 && stk[2]==stk[0])
+			success();
+		else
+			error();
+	}
+}
 
 int main(){
 	readGra();
 	getVT();
 	getTable();
-	outTable();
+	if (DEBUG) outTable();
+	process();
 	return 0;
 }
 
-void outVT(){
-	cout<<"----------FirstVT---------------"<<endl;
-	rep(i, M){
-		bool flag=0;
-		vector<int> v;
-		rep(j, N) if (first[i][j])
-			v.pb(j);
-		if (sz(v)){
-			printf("%c-> ", i+'A');
-			rep(j, sz(v)) putchar(v[j]);
-			puts("");
-		}
-	}
-
-	cout<<endl;
-	cout<<"-----------LastVT--------------"<<endl;
-	rep(i, M){
-		bool flag=0;
-		vector<int> v;
-		rep(j, N) if (last[i][j])
-			v.pb(j);
-		if (sz(v)){
-			printf("%c-> ", i+'A');
-			rep(j, sz(v)) putchar(v[j]);
-			puts("");
-		}
-	}
-}
-
-void outTable(){
-	
-	char s[]="+*^i()#";
-	int n=strlen(s);
-
-	printf("  ");
-	rep(i, n) printf("%c ", s[i]);
-	puts("");
-
-	rep(i, n){
-		printf("%c ", s[i]);
-		rep(j, n){
-			int g=table[s[i]][s[j]];
-			printf("%c ", g==-1?' ':g==0?'<':g==1?'=':'>');
-		}
-		puts("");
-	}
-
-	/*
-	bool x[N+10];
-	clr(x, 0);
-	rep(i, N) rep(j, N) if (table[i][j]!=-1) x[i]=x[j]=1;
-	printf("  ");
-	rep(j, N) if (x[j]) printf("%c ", j);
-		puts("");
-
-	rep(i, N) if (x[i]){
-		printf("%c ", i);
-		rep(j, N) if (x[j]){
-			int g=table[i][j];
-			printf("%c ", g==-1?' ':g==0?'<':g==1?'=':'>');
-		}
-		puts("");
-	}
-	*/
-}
